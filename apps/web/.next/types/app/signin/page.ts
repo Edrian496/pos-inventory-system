@@ -1,4 +1,4 @@
-// File: C:\Users\Edrian Sulague\Projects\startup\inventory-sys\apps\web\src\app\signin\page.tsx
+// File: C:\Users\Edrian Sulague\Projects\boss_ken\pos_system\pos-inventory-system\apps\web\src\app\signin\page.tsx
 import * as entry from '../../../../src/app/signin/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
