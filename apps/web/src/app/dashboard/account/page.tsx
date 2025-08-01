@@ -1,62 +1,141 @@
-export default function AccountPage() {
-  return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-800">Account Settings</h1>
+"use client";
 
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase/client";
+import EditUserInfoDialog from "@/components/modals/AccountEdit";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+
+export default function AccountPage() {
+  const [loading, setLoading] = useState(true);
+  const [userInfo, setUserInfo] = useState<any>(null);
+  const [form, setForm] = useState({
+    first_name: "",
+    last_name: "",
+    email: "",
+  });
+
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+      if (!user) {
+        console.error(userError);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("user_info")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
+      if (data) {
+        setUserInfo({ ...data, email: user.email });
+        setForm({
+          first_name: data.first_name || "",
+          last_name: data.last_name || "",
+          email: user.email || "",
+        });
+      } else {
+        setForm({
+          first_name: "",
+          last_name: "",
+          email: user.email || "",
+        });
+      }
+
+      setLoading(false);
+    };
+
+    fetchUserInfo();
+  }, []);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleSave = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase.from("user_info").upsert({
+      id: user.id,
+      first_name: form.first_name,
+      last_name: form.last_name,
+    });
+
+    if (!error) {
+      toast("User info saved!");
+      setUserInfo({
+        first_name: form.first_name,
+        last_name: form.last_name,
+        email: form.email,
+      });
+    } else {
+      console.error("Error saving user info:", error);
+    }
+  };
+
+  if (loading) return <p className="text-gray-600">Loading...</p>;
+
+  return (
+    <div className="space-y-8">
+      <h1 className="text-3xl font-bold text-gray-800">Account Settings</h1>
+
+      {/* Profile card */}
       <div className="bg-white rounded-xl shadow-sm border p-6 flex gap-6 items-center">
         <img
-          src="test"
+          src="/avatar-placeholder.png"
           alt="avatar"
           className="w-24 h-24 rounded-full border object-cover"
         />
-        <div>
-          <h2 className="text-xl font-semibold text-gray-800">John Doe</h2>
-          <p className="text-gray-500">admin@example.com</p>
+        <div className="flex-1">
+          <h2 className="text-xl font-semibold text-gray-800">
+            {userInfo?.first_name} {userInfo?.last_name}
+          </h2>
+          <p className="text-gray-500">{userInfo?.email}</p>
         </div>
+        <EditUserInfoDialog
+          form={form}
+          onChange={handleChange}
+          onSave={handleSave}
+          trigger={<Button variant="outline">Edit</Button>}
+        />
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border p-6">
-        <form className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-600">
-              First Name
-            </label>
-            <input
-              type="text"
-              defaultValue="John"
-              className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-600">
-              Last Name
-            </label>
-            <input
-              type="text"
-              defaultValue="Doe"
-              className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="block text-sm font-medium text-gray-600">
-              Email
-            </label>
-            <input
-              type="email"
-              defaultValue="admin@example.com"
-              className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-          <div className="sm:col-span-2 flex justify-end">
-            <button
-              type="submit"
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md shadow"
-            >
-              Save Changes
-            </button>
-          </div>
-        </form>
-      </div>
+      {/* Info table */}
+      {userInfo?.first_name && userInfo?.last_name && (
+        <div className="bg-white rounded-xl shadow-sm border p-6">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">
+            User Information
+          </h3>
+          <table className="w-full text-sm text-left text-gray-600">
+            <tbody>
+              <tr className="border-b">
+                <th className="py-2 pr-4 font-medium text-gray-700">
+                  First Name
+                </th>
+                <td className="py-2">{userInfo.first_name}</td>
+              </tr>
+              <tr className="border-b">
+                <th className="py-2 pr-4 font-medium text-gray-700">
+                  Last Name
+                </th>
+                <td className="py-2">{userInfo.last_name}</td>
+              </tr>
+              <tr className="border-b">
+                <th className="py-2 pr-4 font-medium text-gray-700">Email</th>
+                <td className="py-2">{userInfo.email}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

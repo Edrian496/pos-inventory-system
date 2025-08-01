@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Pencil, Trash2 } from "lucide-react";
-import { AddMenuItemModal } from "./add-menu-modal";
+import { AddMenuItemModal } from "@/components/modals/MenuModal";
 
 interface Ingredient {
   name: string;
