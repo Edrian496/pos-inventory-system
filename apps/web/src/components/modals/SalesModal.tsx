@@ -133,12 +133,15 @@ export function SalesModal({ onSuccess }: { onSuccess: () => void }) {
       setPaymentMethodId("");
       setOpen(false);
       onSuccess();
-    } catch (err: any) {
-      toast.error(`Failed to add sale: ${err.message || err}`);
-      console.error("Add sale error:", err);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        toast.error(`Failed to add sale: ${err.message}`);
+        console.error("Add sale error:", err);
+      } else {
+        toast.error("Failed to add sale due to an unknown error.");
+        console.error("Add sale unknown error:", err);
+      }
+    }    
   };
 
   return (

@@ -7,7 +7,6 @@ import { supabase } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils/classnames";
-import { Input } from "@/components/ui/input";
 
 type MenuItem = {
   id: string;

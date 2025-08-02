@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next();
@@ -13,11 +13,11 @@ export async function middleware(req: NextRequest) {
         get(name: string) {
           return req.cookies.get(name)?.value;
         },
-        set(name: string, value: string, options: any) {
+        set(name: string, value: string, options: CookieOptions) {
           res.cookies.set(name, value, options);
         },
-        remove(name: string, options: any) {
-          res.cookies.set(name, '', { ...options, maxAge: -1 });
+        remove(name: string, options: CookieOptions) {
+          res.cookies.set(name, "", { ...options, maxAge: -1 });
         },
       },
     }
@@ -27,13 +27,17 @@ export async function middleware(req: NextRequest) {
     data: { session },
   } = await supabase.auth.getSession();
 
-  if (!session && req.nextUrl.pathname.startsWith('/home')) {
-    return NextResponse.redirect(new URL('/signin', req.url));
+  const protectedPaths = ["/signin", "/signup", "/dashboard"];
+  const isProtected = protectedPaths.some((path) =>
+    req.nextUrl.pathname.startsWith(path)
+  );
+
+  if (!session && isProtected) {
+    const redirectUrl = req.nextUrl.clone();
+    redirectUrl.pathname = "/signin";
+    redirectUrl.searchParams.set("redirectedFrom", req.nextUrl.pathname);
+    return NextResponse.redirect(redirectUrl);
   }
 
   return res;
 }
-
-export const config = {
-  matcher: ['/home/:path*', '/dashboard/:path*', '/reports/:path*'],
-};

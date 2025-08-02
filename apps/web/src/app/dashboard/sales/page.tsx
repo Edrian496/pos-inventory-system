@@ -12,7 +12,6 @@ import * as XLSX from "xlsx";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SalesModal } from "@/components/modals/SalesModal";
 import { supabase } from "@/lib/supabase/client";
 import { ReloadIcon } from "@radix-ui/react-icons";
 import DatePicker from "react-datepicker";

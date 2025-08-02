@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { AddMenuItemModal } from "@/components/modals/MenuModal";
 
 interface Ingredient {
@@ -21,6 +21,23 @@ export interface MenuItem {
   description?: string;
   ingredients: Ingredient[];
 }
+
+interface RawMenuItem {
+  id: string;
+  name: string;
+  price: number;
+  category?: string;
+  description?: string;
+  menu_item_ingredients: {
+    quantity: number;
+    inventory_items: {
+      name: string;
+      unit: string | null;
+    } | null;
+  }[];
+}
+
+
 
 export default function MenuPage() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
@@ -44,7 +61,7 @@ export default function MenuPage() {
             unit
           )
         )
-      `);
+      `) as unknown as { data: RawMenuItem[] | null, error: Error | null };
 
     if (error) {
       console.error("Error fetching menu:", error.message);
@@ -53,18 +70,19 @@ export default function MenuPage() {
       return;
     }
 
-    const formattedMenu = (data || []).map((item: any) => ({
+    const formattedMenu = (data ?? []).map((item) => ({
       id: item.id,
       name: item.name,
       price: item.price,
       category: item.category ?? "Uncategorized",
       description: item.description || "",
-      ingredients: (item.menu_item_ingredients || []).map((i: any) => ({
+      ingredients: (item.menu_item_ingredients ?? []).map((i) => ({
         name: i.inventory_items?.name || "Unknown",
         unit: i.inventory_items?.unit || "",
         quantity: i.quantity,
       })),
     }));
+    
 
     setMenuItems(formattedMenu);
     setError(null);
