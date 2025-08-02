@@ -1,8 +1,17 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 
+interface InventoryItem {
+  id: string;
+  name: string;
+  unit: string;
+  quantity: number;
+  cost_per_unit: number;
+  created_at: string;
+}
+
 export function useInventory() {
-  const [items, setItems] = useState<any[]>([]);
+  const [items, setItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -12,7 +21,7 @@ export function useInventory() {
         .select('*')
         .order('name');
 
-      if (!error) setItems(data || []);
+      if (!error && data) setItems(data as InventoryItem[]);
       setLoading(false);
     };
 
@@ -20,4 +29,4 @@ export function useInventory() {
   }, []);
 
   return { items, loading };
-}
+} 
