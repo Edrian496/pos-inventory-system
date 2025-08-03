@@ -199,10 +199,18 @@ export function AddMenuItemModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog
+      open={open}
+      onOpenChange={(val) => {
+        if (!val) handleClose(); // only close
+      }}
+    >
       {!item && (
         <DialogTrigger asChild>
-          <Button className="flex items-center gap-2">
+          <Button
+            className="flex items-center gap-2"
+            onClick={() => setOpen(true)}
+          >
             <Plus size={16} />
             Add Menu Item
           </Button>
@@ -274,8 +282,8 @@ export function AddMenuItemModal({
             {loading
               ? "Saving..."
               : item
-                ? "Update Menu Item"
-                : "Save Menu Item"}
+              ? "Update Menu Item"
+              : "Save Menu Item"}
           </Button>
         </div>
       </DialogContent>
