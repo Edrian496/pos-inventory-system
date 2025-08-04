@@ -25,10 +25,10 @@ export default function InventoryPage() {
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState<Date | null>(new Date());
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [page, setPage] = useState(1);
-  const itemsPerPage = 6;
+  const itemsPerPage = 5;
 
   const fetchInventory = async () => {
     setLoading(true);
@@ -36,7 +36,8 @@ export default function InventoryPage() {
 
     const { data, error } = await supabase
       .from("inventory_items")
-      .select("id, name, unit, quantity, cost_per_unit, created_at");
+      .select("*")
+      .order("created_at", { ascending: false });
 
     if (error) {
       setError("Failed to load inventory.");
@@ -46,27 +47,25 @@ export default function InventoryPage() {
     }
 
     setInventory(data || []);
+    setFilteredInventory(data || []);
     setLoading(false);
   };
 
-  // Initial fetch
   useEffect(() => {
     fetchInventory();
   }, []);
 
-  // Set filteredInventory to all data after fetch
-  useEffect(() => {
-    setFilteredInventory(inventory);
-  }, [inventory]);
-
   const applyFilters = () => {
-    let filtered = [...inventory];
-    if (selectedDate) {
-      filtered = filtered.filter((item) => {
-        const createdAt = new Date(item.created_at);
-        return createdAt.toDateString() === selectedDate.toDateString();
-      });
-    }
+    const monthFilter = selectedMonth ?? new Date();
+
+    const filtered = inventory.filter((item) => {
+      const date = new Date(item.created_at);
+      return (
+        date.getMonth() === monthFilter.getMonth() &&
+        date.getFullYear() === monthFilter.getFullYear()
+      );
+    });
+
     setFilteredInventory(filtered);
     setPage(1);
   };
@@ -75,15 +74,16 @@ export default function InventoryPage() {
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const paginatedInventory = filteredInventory.slice(
+  const paginatedItems = filteredInventory.slice(
     (page - 1) * itemsPerPage,
     page * itemsPerPage
   );
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <h1 className="text-2xl font-bold">Inventory</h1>
+        <h1 className="text-2xl font-bold">Inventory Records</h1>
         <div className="flex gap-2 flex-wrap">
           <Button variant="outline" onClick={fetchInventory} disabled={loading}>
             <ReloadIcon
@@ -95,16 +95,18 @@ export default function InventoryPage() {
         </div>
       </div>
 
+      {/* Filters */}
       <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
         <div>
           <label className="block text-sm font-medium mb-1">
-            Filter by Created Date
+            Filter by Date
           </label>
           <DatePicker
-            selected={selectedDate}
-            onChange={(date) => setSelectedDate(date || new Date())}
-            placeholderText="Select a date"
-            className="border rounded px-2 py-1 w-full"
+            selected={selectedMonth}
+            onChange={(date) => setSelectedMonth(date)}
+            dateFormat="MMMM yyyy"
+            showMonthYearPicker
+            className="border rounded px-2 py-1"
           />
         </div>
         <div className="self-end md:self-auto">
@@ -112,55 +114,111 @@ export default function InventoryPage() {
         </div>
       </div>
 
+      {/* Content */}
       {loading ? (
         <p className="text-muted-foreground">Loading inventory...</p>
       ) : error ? (
         <p className="text-red-500">{error}</p>
       ) : filteredInventory.length === 0 ? (
-        <p className="text-muted-foreground">No matching items found.</p>
+        <p className="text-muted-foreground">
+          No matching inventory items found.
+        </p>
       ) : (
         <>
-          {paginatedInventory.map((item) => (
-            <Card key={item.id}>
-              <CardHeader className="flex flex-col md:flex-row justify-between items-start md:items-center">
-                <CardTitle className="text-lg">
-                  {item.name} —{" "}
-                  {new Date(item.created_at).toLocaleDateString("en-US", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </CardTitle>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => toggleExpand(item.id)}
-                >
-                  {expanded[item.id] ? "Hide Info" : "Show More"}
-                </Button>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground space-y-1">
-                {expanded[item.id] && (
-                  <div className="space-y-1">
-                    <div>
-                      Bought on:{" "}
-                      {new Date(item.created_at).toLocaleTimeString("en-US", {
-                        hour: "numeric",
-                        minute: "2-digit",
-                        hour12: true,
-                      })}
+          {/* Grouped by Month */}
+          {(() => {
+            const groupedByMonth: Record<string, InventoryItem[]> = {};
+
+            paginatedItems.forEach((item) => {
+              const date = new Date(item.created_at);
+              const monthKey = date.toLocaleString("default", {
+                month: "long",
+                year: "numeric",
+              });
+
+              if (!groupedByMonth[monthKey]) groupedByMonth[monthKey] = [];
+              groupedByMonth[monthKey].push(item);
+            });
+
+            return Object.entries(groupedByMonth).map(
+              ([month, itemsInMonth]) => {
+                const monthlyTotal = itemsInMonth.reduce(
+                  (acc, item) => acc + item.quantity * item.cost_per_unit,
+                  0
+                );
+
+                return (
+                  <div key={month} className="space-y-4 mt-6">
+                    <div className="flex justify-between items-center mb-1">
+                      <h2 className="text-xl font-bold text-primary">
+                        {month}
+                      </h2>
+                      <span className="text-lg font-semibold text-blue-600">
+                        ₱
+                        {monthlyTotal.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                        })}
+                      </span>
                     </div>
-                    <div>Unit: {item.unit}</div>
-                    <div>Quantity: {item.quantity}</div>
-                    <div>Cost Per Unit: ₱{item.cost_per_unit.toFixed(2)}</div>
+                    {itemsInMonth.map((item) => (
+                      <Card key={item.id}>
+                        <CardHeader className="flex flex-col md:flex-row justify-between items-start md:items-center">
+                          <CardTitle className="text-lg">
+                            {item.name} —{" "}
+                            {new Date(item.created_at).toLocaleDateString(
+                              "en-US",
+                              {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric",
+                              }
+                            )}
+                          </CardTitle>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => toggleExpand(item.id)}
+                          >
+                            {expanded[item.id]
+                              ? "Hide Details"
+                              : "Show Details"}
+                          </Button>
+                        </CardHeader>
+                        <CardContent className="text-sm text-muted-foreground space-y-2">
+                          {expanded[item.id] && (
+                            <div className="space-y-1">
+                              <div>
+                                Quantity: {item.quantity} {item.unit}
+                              </div>
+                              <div>
+                                Cost per unit: ₱{item.cost_per_unit.toFixed(2)}
+                              </div>
+
+                              <div>
+                                Bought on:{" "}
+                                {new Date(item.created_at).toLocaleTimeString(
+                                  "en-US",
+                                  {
+                                    hour: "numeric",
+                                    minute: "2-digit",
+                                    hour12: true,
+                                  }
+                                )}
+                              </div>
+                            </div>
+                          )}
+                          <p className="font-semibold">
+                            Total: ₱
+                            {(item.cost_per_unit * item.quantity).toFixed(2)}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
-                )}
-                <p className="font-semibold">
-                  Total: ₱{(item.cost_per_unit * item.quantity).toFixed(2)}
-                </p>
-              </CardContent>
-            </Card>
-          ))}
+                );
+              }
+            );
+          })()}
 
           {/* Pagination */}
           <div className="flex justify-center gap-2 mt-4">

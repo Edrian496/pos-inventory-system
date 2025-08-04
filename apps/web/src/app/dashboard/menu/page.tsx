@@ -37,8 +37,6 @@ interface RawMenuItem {
   }[];
 }
 
-
-
 export default function MenuPage() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,7 +46,7 @@ export default function MenuPage() {
   const fetchMenuWithIngredients = async () => {
     setLoading(true);
 
-    const { data, error } = await supabase.from("menu_items").select(`
+    const { data, error } = (await supabase.from("menu_items").select(`
         id,
         name,
         price,
@@ -61,7 +59,7 @@ export default function MenuPage() {
             unit
           )
         )
-      `) as unknown as { data: RawMenuItem[] | null, error: Error | null };
+      `)) as unknown as { data: RawMenuItem[] | null; error: Error | null };
 
     if (error) {
       console.error("Error fetching menu:", error.message);
@@ -82,7 +80,6 @@ export default function MenuPage() {
         quantity: i.quantity,
       })),
     }));
-    
 
     setMenuItems(formattedMenu);
     setError(null);
