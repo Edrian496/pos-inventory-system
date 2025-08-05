@@ -4,40 +4,40 @@ import { useEffect, useState } from "react";
 import BarChartCard from "@/components/charts/BarChartCard";
 import PieChartCard from "@/components/charts/PieChartCard";
 import { supabase } from "@/lib/supabase/client";
-
-// Utility to get first and last day of a month
-function getMonthRange(month: string) {
-  const [year, monthIndex] = month.split("-").map(Number); // month is in format "2025-07"
-  const start = new Date(year, monthIndex - 1, 1);
-  const end = new Date(year, monthIndex, 0); // last day of the month
-  return {
-    startDate: start.toISOString().split("T")[0],
-    endDate: end.toISOString().split("T")[0],
-  };
-}
+import { generateRecentMonths, getMonthRange } from "@/lib/utils/generateMonth";
 
 export default function DashboardPage() {
-  const [selectedMonth, setSelectedMonth] = useState("2025-07");
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
+      2,
+      "0"
+    )}`;
+  });
+
+  const [monthOptions, setMonthOptions] = useState<string[]>([]);
   const [incomeByPayment, setIncomeByPayment] = useState([]);
   const [expenseByCategory, setExpenseByCategory] = useState([]);
   const [cashflowByPayment, setCashflowByPayment] = useState([]);
+  const [incomeExpenseData, setIncomeVsExpense] = useState<
+    { name: string; amount: number }[]
+  >([]);
+  const [profit, setProfit] = useState<number>(0);
+
+  useEffect(() => {
+    setMonthOptions(generateRecentMonths(12));
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
       const { startDate, endDate } = getMonthRange(selectedMonth);
 
-      // Cashflow by payment method
       const { data: cashflowPayment, error: cashflowError } =
         await supabase.rpc("get_cashflow_by_payment_method", {
           from_date: startDate,
           to_date: endDate,
         });
 
-      if (cashflowError) {
-        console.error("Error fetching cashflow:", cashflowError.message);
-      }
-
-      // Income percentage by payment method (🆕 updated function name)
       const { data: incomePayment, error: incomeError } = await supabase.rpc(
         "get_income_percentage_by_payment_method",
         {
@@ -46,11 +46,6 @@ export default function DashboardPage() {
         }
       );
 
-      if (incomeError) {
-        console.error("Error fetching income breakdown:", incomeError.message);
-      }
-
-      // Expense by category
       const { data: expenseCategory, error: expenseError } = await supabase.rpc(
         "get_expense_by_ingredient_percentage",
         {
@@ -59,12 +54,39 @@ export default function DashboardPage() {
         }
       );
 
-      if (expenseError) {
+      const { data: incomeExpenseRaw, error: incomeExpenseError } =
+        await supabase.rpc("get_total_income_expense", {
+          target_month: selectedMonth,
+        });
+
+      const totals = Array.isArray(incomeExpenseRaw)
+        ? incomeExpenseRaw[0]
+        : incomeExpenseRaw;
+
+      const income = Number(totals?.total_income ?? 0);
+      const expense = Number(totals?.total_expense ?? 0);
+
+      setIncomeVsExpense([
+        { name: "Income", amount: income },
+        { name: "Expense", amount: expense },
+      ]);
+
+      setProfit(income - expense);
+
+      if (cashflowError)
+        console.error("Error fetching cashflow:", cashflowError.message);
+      if (incomeError)
+        console.error("Error fetching income breakdown:", incomeError.message);
+      if (expenseError)
         console.error(
           "Error fetching expense breakdown:",
           expenseError.message
         );
-      }
+      if (incomeExpenseError)
+        console.error(
+          "Error fetching total income vs expense:",
+          incomeExpenseError.message
+        );
 
       setCashflowByPayment(cashflowPayment || []);
       setIncomeByPayment(incomePayment || []);
@@ -75,31 +97,18 @@ export default function DashboardPage() {
   }, [selectedMonth]);
 
   return (
-    <div className="space-y-6">
-      {/* Month Filter */}
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-semibold text-gray-800">
-          Dashboard Overview
+    <div className="space-y-8 px-4 sm:px-6 lg:px-8 py-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h1 className="text-3xl font-bold text-gray-800">
+          📈 Dashboard Overview
         </h1>
         <select
-          className="border px-3 py-2 rounded-md"
+          className="border border-gray-300 px-4 py-2 rounded-md shadow-sm focus:outline-none focus:ring focus:border-blue-300"
           value={selectedMonth}
           onChange={(e) => setSelectedMonth(e.target.value)}
         >
-          {[
-            "2025-01",
-            "2025-02",
-            "2025-03",
-            "2025-04",
-            "2025-05",
-            "2025-06",
-            "2025-07",
-            "2025-08",
-            "2025-09",
-            "2025-10",
-            "2025-11",
-            "2025-12",
-          ].map((month) => (
+          {monthOptions.map((month) => (
             <option key={month} value={month}>
               {new Date(`${month}-01`).toLocaleString("default", {
                 month: "long",
@@ -110,19 +119,46 @@ export default function DashboardPage() {
         </select>
       </div>
 
+      {/* Net Profit Summary */}
+      <div className="w-full max-w-md">
+        <div className="bg-white rounded-xl shadow p-6">
+          <h2 className="text-lg font-semibold text-gray-800 mb-2">
+            💰 Net Profit
+          </h2>
+          <p
+            className={`text-3xl font-bold ${
+              profit > 0
+                ? "text-green-600"
+                : profit < 0
+                ? "text-red-500"
+                : "text-gray-500"
+            }`}
+          >
+            {profit >= 0 ? "+" : "-"}₱{Math.abs(profit).toLocaleString()}
+          </p>
+          <p className="text-sm text-gray-500 mt-1">
+            {profit > 0
+              ? "You made a profit this month!"
+              : profit < 0
+              ? "You're operating at a loss this month."
+              : "You broke even this month."}
+          </p>
+        </div>
+      </div>
+
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
         <BarChartCard
           title="Cashflow by Payment Method"
           data={cashflowByPayment}
         />
-
         <PieChartCard title="Income by Payment Method" data={incomeByPayment} />
         <PieChartCard
           title="Expenses by Category"
           data={expenseByCategory}
           colors={["#ef4444", "#f97316", "#a855f7"]}
         />
+        <BarChartCard title="Income vs Expense" data={incomeExpenseData} />
       </div>
     </div>
   );

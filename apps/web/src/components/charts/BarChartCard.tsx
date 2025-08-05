@@ -36,6 +36,7 @@ export default function BarChartCard({
         amount: Number(item.amount),
       }))
     : [{ name: "No data", amount: 0 }];
+  console.log("Parsed Data:", parsedData);
 
   const chartColors = hasData ? colors : ["#e5e7eb"];
 

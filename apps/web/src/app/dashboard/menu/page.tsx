@@ -20,6 +20,7 @@ export interface MenuItem {
   category?: string;
   description?: string;
   ingredients: Ingredient[];
+  image_url?: string;
 }
 
 interface RawMenuItem {
@@ -135,9 +136,6 @@ export default function MenuPage() {
       ) : (
         Object.entries(groupedMenu).map(([category, items]) => (
           <div key={category}>
-            <h2 className="text-xl font-bold text-indigo-600 mb-4">
-              {category}
-            </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {items.map((item) => (
                 <div
@@ -170,24 +168,6 @@ export default function MenuPage() {
                   <p className="text-indigo-600 font-semibold mb-2">
                     ₱{item.price.toFixed(2)}
                   </p>
-                  {item.ingredients.length > 0 ? (
-                    <div>
-                      <p className="text-sm font-medium text-gray-600 mb-1">
-                        Ingredients:
-                      </p>
-                      <ul className="text-sm text-gray-500 list-disc list-inside">
-                        {item.ingredients.map((i, index) => (
-                          <li key={index}>
-                            {i.quantity} {i.unit} {i.name}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : (
-                    <p className="text-sm italic text-gray-400">
-                      No ingredients listed.
-                    </p>
-                  )}
                 </div>
               ))}
             </div>

@@ -22,10 +22,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MenuItem } from "../../app/dashboard/menu/page"; // ← import shared MenuItem type
+import { MenuItem } from "../../app/dashboard/menu/page";
 
 interface AddMenuItemModalProps {
-  item?: MenuItem; // ← edit mode
+  item?: MenuItem;
   onItemAdded: () => void;
   onClose?: () => void;
 }
@@ -53,8 +53,8 @@ export function AddMenuItemModal({
   const [ingredients, setIngredients] = useState<IngredientInput[]>([]);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
-  // Open modal when item is passed in (for editing)
   useEffect(() => {
     if (item) {
       setName(item.name);
@@ -71,7 +71,6 @@ export function AddMenuItemModal({
     }
   }, [item, inventoryItems]);
 
-  // Load inventory for dropdown
   useEffect(() => {
     const fetchInventory = async () => {
       const { data, error } = await supabase
@@ -112,14 +111,38 @@ export function AddMenuItemModal({
 
     setLoading(true);
 
+    let imageUrl = item?.image_url || null;
+
+    if (imageFile) {
+      const fileExt = imageFile.name.split(".").pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `menu-images/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("menu") // replace with your actual bucket name
+        .upload(filePath, imageFile);
+
+      if (uploadError) {
+        toast.error("Image upload failed.");
+        setLoading(false);
+        return;
+      }
+
+      const { data: urlData } = supabase.storage
+        .from("menu")
+        .getPublicUrl(filePath);
+
+      imageUrl = urlData?.publicUrl || null;
+    }
+
     if (item) {
-      // --- UPDATE MODE ---
       const { error: updateError } = await supabase
         .from("menu_items")
         .update({
           name,
           price: parseFloat(price),
           description,
+          image_url: imageUrl,
         })
         .eq("id", item.id);
 
@@ -129,13 +152,11 @@ export function AddMenuItemModal({
         return;
       }
 
-      // Delete old ingredients
       await supabase
         .from("menu_item_ingredients")
         .delete()
         .eq("menu_item_id", item.id);
 
-      // Insert new ingredients
       const mappedIngredients = ingredients.map((ing) => ({
         menu_item_id: item.id,
         inventory_item_id: ing.inventory_item_id,
@@ -154,10 +175,11 @@ export function AddMenuItemModal({
         onItemAdded();
       }
     } else {
-      // --- ADD MODE ---
       const { data: menuItem, error: insertError } = await supabase
         .from("menu_items")
-        .insert([{ name, price: parseFloat(price), description }])
+        .insert([
+          { name, price: parseFloat(price), description, image_url: imageUrl },
+        ])
         .select()
         .single();
 
@@ -195,6 +217,7 @@ export function AddMenuItemModal({
     setPrice("");
     setDescription("");
     setIngredients([]);
+    setImageFile(null);
     onClose?.();
   };
 
@@ -202,7 +225,7 @@ export function AddMenuItemModal({
     <Dialog
       open={open}
       onOpenChange={(val) => {
-        if (!val) handleClose(); // only close
+        if (!val) handleClose();
       }}
     >
       {!item && (
@@ -240,42 +263,17 @@ export function AddMenuItemModal({
               onChange={(e) => setDescription(e.target.value)}
             />
           </div>
-
-          <div className="space-y-2">
-            <Label>Ingredients</Label>
-            {ingredients.map((ingredient, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <Select
-                  onValueChange={(val) =>
-                    updateIngredient(index, "inventory_item_id", val)
-                  }
-                  value={ingredient.inventory_item_id}
-                >
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Select Item" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white">
-                    {inventoryItems.map((inv) => (
-                      <SelectItem key={inv.id} value={inv.id}>
-                        {inv.name} ({inv.unit})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Input
-                  placeholder="Qty"
-                  className="w-20"
-                  type="number"
-                  value={ingredient.quantity}
-                  onChange={(e) =>
-                    updateIngredient(index, "quantity", e.target.value)
-                  }
-                />
-              </div>
-            ))}
-            <Button variant="secondary" onClick={addIngredientField}>
-              + Add Ingredient
-            </Button>
+          <div>
+            <Label>Photo (optional)</Label>
+            <Input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                if (e.target.files?.[0]) {
+                  setImageFile(e.target.files[0]);
+                }
+              }}
+            />
           </div>
 
           <Button onClick={handleSave} disabled={loading}>

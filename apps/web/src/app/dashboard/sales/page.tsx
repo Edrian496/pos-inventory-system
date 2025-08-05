@@ -8,37 +8,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import "react-datepicker/dist/react-datepicker.css";
-import * as XLSX from "xlsx";
+
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/lib/supabase/client";
 import { ReloadIcon } from "@radix-ui/react-icons";
 import DatePicker from "react-datepicker";
-
-interface SalesRow {
-  sale_id: string;
-  date: string;
-  total_amount: string;
-  created_at: string;
-  payment_method_name: string;
-  menu_item_name: string;
-  quantity: number;
-  price: string;
-}
-
-interface GroupedSale {
-  sale_id: string;
-  date: string;
-  total_amount: string;
-  created_at: string;
-  payment_method_name: string;
-  items: {
-    menu_item_name: string;
-    quantity: number;
-    price: string;
-  }[];
-}
+import { SalesRow, GroupedSale } from "@/lib/types/index";
+import { exportToExcel } from "@/lib/utils/salesExcel";
 
 export default function SalesPage() {
   const [sales, setSales] = useState<GroupedSale[]>([]);
@@ -49,11 +27,11 @@ export default function SalesPage() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   const [selectedMonth, setSelectedMonth] = useState<Date | null>(new Date());
-
-  const [selectedPayment, setSelectedPayment] = useState("All");
   const [exportOpen, setExportOpen] = useState(false);
   const [exportFrom, setExportFrom] = useState<Date | null>(null);
   const [exportTo, setExportTo] = useState<Date | null>(null);
+  const [selectedPayment, setSelectedPayment] = useState("All");
+
   const [page, setPage] = useState(1);
   const itemsPerPage = 5;
 
@@ -143,49 +121,6 @@ export default function SalesPage() {
     page * itemsPerPage
   );
 
-  const exportToExcel = () => {
-    if (!exportFrom || !exportTo) {
-      alert("Please select both From and To dates.");
-      return;
-    }
-
-    const filtered = sales.filter((sale) => {
-      const date = new Date(sale.date);
-      return date >= exportFrom && date <= exportTo;
-    });
-
-    if (filtered.length === 0) {
-      alert("No sales found in selected range.");
-      return;
-    }
-
-    const rows = filtered.flatMap((sale) =>
-      sale.items.map((item) => ({
-        SaleID: sale.sale_id,
-        Date: sale.date,
-        PaymentMethod: sale.payment_method_name,
-        MenuItem: item.menu_item_name,
-        Quantity: item.quantity,
-        PricePerUnit: parseFloat(item.price),
-        Subtotal: parseFloat(item.price) * item.quantity,
-        TotalSaleAmount: parseFloat(sale.total_amount),
-      }))
-    );
-
-    const worksheet = XLSX.utils.json_to_sheet(rows);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Sales");
-
-    XLSX.writeFile(
-      workbook,
-      `Sales_Report_${exportFrom.toISOString().split("T")[0]}_to_${
-        exportTo.toISOString().split("T")[0]
-      }.xlsx`
-    );
-
-    setExportOpen(false);
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -229,8 +164,27 @@ export default function SalesPage() {
                 placeholderText="Select end date"
               />
             </div>
-            <Button onClick={exportToExcel} className="w-full">
-              Export
+            <Button
+              onClick={() => {
+                if (!exportFrom || !exportTo) {
+                  alert("Please select both From and To dates.");
+                  return;
+                }
+
+                const filteredForExport = filteredSales.filter((sale) => {
+                  const saleDate = new Date(sale.date);
+                  return saleDate >= exportFrom && saleDate <= exportTo;
+                });
+
+                if (filteredForExport.length === 0) {
+                  alert("No sales found in selected range.");
+                  return;
+                }
+
+                exportToExcel(filteredForExport, exportFrom, exportTo);
+              }}
+            >
+              Export to Excel
             </Button>
           </div>
         </DialogContent>

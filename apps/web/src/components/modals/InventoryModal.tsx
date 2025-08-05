@@ -121,18 +121,6 @@ export function AddInventoryModal({ onItemAdded }: AddInventoryModalProps) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="reorderLevel">Reorder Level</Label>
-            <Input
-              id="reorderLevel"
-              type="number"
-              min="0"
-              value={reorderLevel}
-              onChange={(e) => setReorderLevel(e.target.value)}
-              placeholder="e.g., 5"
-              required
-            />
-          </div>
-          <div className="space-y-2">
             <Label htmlFor="costPerUnit">Cost Per Unit (₱)</Label>
             <Input
               id="costPerUnit"
@@ -143,15 +131,6 @@ export function AddInventoryModal({ onItemAdded }: AddInventoryModalProps) {
               onChange={(e) => setCostPerUnit(e.target.value)}
               placeholder="e.g., 12.50"
               required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="category">Category (optional)</Label>
-            <Input
-              id="category"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              placeholder="e.g., Vegetables"
             />
           </div>
           <Button onClick={handleAddItem} disabled={loading}>

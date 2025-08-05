@@ -7,12 +7,7 @@ import { supabase } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils/classnames";
-
-type MenuItem = {
-  id: string;
-  name: string;
-  price: number;
-};
+import { MenuItem } from "@/lib/types";
 
 type CartItem = MenuItem & { quantity: number };
 
@@ -41,7 +36,6 @@ export default function POSPage() {
         setUserId(user.id);
       }
     };
-
     fetchUser();
   }, []);
 
@@ -54,7 +48,6 @@ export default function POSPage() {
         setMenu(data || []);
       }
     };
-
     fetchMenu();
   }, []);
 
@@ -74,7 +67,7 @@ export default function POSPage() {
   };
 
   const triggerRemoveMode = (id: string) => {
-    setRemoveModeId(id === removeModeId ? null : id); // toggle
+    setRemoveModeId(id === removeModeId ? null : id);
     setRemoveQty(1);
   };
 
@@ -110,12 +103,11 @@ export default function POSPage() {
     );
 
     try {
-      // Insert into `sales`
       const { data: sale, error: saleError } = await supabase
         .from("sales")
         .insert([
           {
-            date: new Date().toISOString().split("T")[0], // YYYY-MM-DD format
+            date: new Date().toISOString().split("T")[0],
             total_amount: totalAmount,
             payment_method_id: paymentMethod,
             user_id: userId,
@@ -129,7 +121,6 @@ export default function POSPage() {
         return;
       }
 
-      // Build sale_items
       const saleItems = cart.map((item) => ({
         sale_id: sale.id,
         menu_item_id: item.id,
@@ -151,133 +142,162 @@ export default function POSPage() {
       setShowPaymentModal(false);
       setPaymentMethod("");
     } catch (err) {
-      toast.error("Unexpected error occurred during checkout.");
+      toast.error("Unexpected error during checkout.");
       console.error(err);
     }
   };
 
   return (
-    <div className="p-6 grid md:grid-cols-3 gap-6">
-      {/* Menu Items */}
-      <div className="md:col-span-2 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-        {menu.map((item) => (
-          <div
-            key={item.id}
-            onClick={() => addToCart(item)}
-            className={cn(
-              "border p-4 rounded shadow cursor-pointer transition-all duration-200",
-              highlightedItemId === item.id
-                ? "bg-indigo-100 scale-[1.03]"
-                : "hover:shadow-md hover:bg-gray-50"
-            )}
-          >
-            <h3 className="text-lg font-semibold">{item.name}</h3>
-            <p className="text-gray-600">₱{item.price.toFixed(2)}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Cart */}
-      <div className="bg-white p-4 shadow rounded">
-        <h2 className="text-xl font-semibold mb-4">Cart</h2>
-        {cart.length === 0 ? (
-          <p className="text-gray-500">No items selected</p>
-        ) : (
-          <ul className="space-y-4">
-            {cart.map((item) => (
-              <li key={item.id} className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span>
-                    {item.name} × {item.quantity}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <span>₱{(item.price * item.quantity).toFixed(2)}</span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => triggerRemoveMode(item.id)}
-                    >
-                      <Trash2 size={16} className="text-red-500" />
-                    </Button>
-                  </div>
-                </div>
-
-                {removeModeId === item.id && (
-                  <div className="flex items-center gap-3 mt-1 animate-in fade-in slide-in-from-bottom-2">
-                    <div className="flex items-center border rounded px-2">
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        className="text-xl px-2"
-                        onClick={() =>
-                          setRemoveQty((prev) => (prev > 1 ? prev - 1 : 1))
-                        }
-                      >
-                        –
-                      </Button>
-                      <span className="px-2 min-w-[20px] text-center text-sm">
-                        {removeQty}
-                      </span>
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        className="text-xl px-2"
-                        onClick={() =>
-                          setRemoveQty((prev) =>
-                            prev < item.quantity ? prev + 1 : prev
-                          )
-                        }
-                      >
-                        +
-                      </Button>
-                    </div>
-
-                    <Button size="sm" onClick={() => confirmRemove(item.id)}>
-                      Confirm
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setRemoveModeId(null)}
-                    >
-                      Cancel
-                    </Button>
+    <div className="min-h-screen bg-muted px-4 sm:px-6 py-6">
+      <div className="grid md:grid-cols-3 gap-6">
+        {/* Menu Section */}
+        <div className="md:col-span-2 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          {menu.map((item) => (
+            <div
+              key={item.id}
+              onClick={() => addToCart(item)}
+              className={cn(
+                "rounded-xl border bg-white transition-all shadow-sm hover:shadow-md cursor-pointer overflow-hidden group",
+                highlightedItemId === item.id ? "ring-2 ring-indigo-400" : ""
+              )}
+            >
+              <div className="aspect-[3/4] bg-muted">
+                {item.image_url ? (
+                  <img
+                    src={item.image_url}
+                    alt={item.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+                    No image
                   </div>
                 )}
-              </li>
-            ))}
+              </div>
+              <div className="p-3">
+                <h3 className="text-sm font-medium text-gray-900 truncate">
+                  {item.name}
+                </h3>
+                <p className="text-sm text-indigo-600 mt-1 font-semibold">
+                  ₱{item.price.toFixed(2)}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
 
-            <li className="font-semibold flex justify-between border-t pt-2 mt-2">
-              <span>Total:</span>
-              <span>
-                ₱
-                {cart
-                  .reduce((sum, item) => sum + item.price * item.quantity, 0)
-                  .toFixed(2)}
-              </span>
-            </li>
-          </ul>
-        )}
+        {/* Cart Section */}
+        <div className="bg-white p-6 rounded-xl shadow-sm flex flex-col justify-between h-full border">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">
+              Your Cart
+            </h2>
 
-        <Button
-          className="mt-4 w-full"
-          disabled={cart.length === 0}
-          onClick={() => setShowPaymentModal(true)}
-        >
-          Checkout
-        </Button>
+            {cart.length === 0 ? (
+              <p className="text-muted-foreground text-sm">
+                No items selected.
+              </p>
+            ) : (
+              <ul className="space-y-4">
+                {cart.map((item) => (
+                  <li key={item.id}>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-gray-800">
+                        {item.name} × {item.quantity}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-900 font-medium">
+                          ₱{(item.price * item.quantity).toFixed(2)}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => triggerRemoveMode(item.id)}
+                        >
+                          <Trash2 size={16} className="text-destructive" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {removeModeId === item.id && (
+                      <div className="flex items-center gap-3 mt-2 animate-in fade-in slide-in-from-bottom-2">
+                        <div className="flex items-center border rounded-md px-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() =>
+                              setRemoveQty((prev) => (prev > 1 ? prev - 1 : 1))
+                            }
+                            className="text-lg"
+                          >
+                            –
+                          </Button>
+                          <span className="px-2 text-sm">{removeQty}</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() =>
+                              setRemoveQty((prev) =>
+                                prev < item.quantity ? prev + 1 : prev
+                              )
+                            }
+                            className="text-lg"
+                          >
+                            +
+                          </Button>
+                        </div>
+
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => confirmRemove(item.id)}
+                        >
+                          Confirm
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setRemoveModeId(null)}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    )}
+                  </li>
+                ))}
+                <li className="flex justify-between font-semibold pt-4 border-t text-base mt-4 text-gray-900">
+                  <span>Total:</span>
+                  <span>
+                    ₱
+                    {cart
+                      .reduce(
+                        (sum, item) => sum + item.price * item.quantity,
+                        0
+                      )
+                      .toFixed(2)}
+                  </span>
+                </li>
+              </ul>
+            )}
+          </div>
+
+          <Button
+            className="mt-6 w-full text-base py-5"
+            disabled={cart.length === 0}
+            onClick={() => setShowPaymentModal(true)}
+          >
+            Proceed to Checkout
+          </Button>
+        </div>
+
+        <PaymentModal
+          open={showPaymentModal}
+          onOpenChange={setShowPaymentModal}
+          onConfirm={handleCheckout}
+          paymentMethod={paymentMethod}
+          setPaymentMethod={setPaymentMethod}
+        />
       </div>
-
-      {/* Modal */}
-      <PaymentModal
-        open={showPaymentModal}
-        onOpenChange={setShowPaymentModal}
-        onConfirm={handleCheckout}
-        paymentMethod={paymentMethod}
-        setPaymentMethod={setPaymentMethod}
-      />
     </div>
   );
 }

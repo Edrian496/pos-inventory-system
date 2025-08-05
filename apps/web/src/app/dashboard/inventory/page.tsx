@@ -1,6 +1,14 @@
 "use client";
 
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useEffect, useState } from "react";
+
 import { supabase } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,15 +16,8 @@ import { ReloadIcon } from "@radix-ui/react-icons";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { AddInventoryModal } from "@/components/modals/InventoryModal";
-
-interface InventoryItem {
-  id: string;
-  name: string;
-  unit: string;
-  quantity: number;
-  cost_per_unit: number;
-  created_at: string;
-}
+import { InventoryItem } from "@/lib/types/index";
+import { exportToExcel } from "@/lib/utils/inventoryExcel";
 
 export default function InventoryPage() {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -29,6 +30,9 @@ export default function InventoryPage() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [page, setPage] = useState(1);
   const itemsPerPage = 5;
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportFrom, setExportFrom] = useState<Date | null>(null);
+  const [exportTo, setExportTo] = useState<Date | null>(null);
 
   const fetchInventory = async () => {
     setLoading(true);
@@ -94,6 +98,43 @@ export default function InventoryPage() {
           <AddInventoryModal onItemAdded={fetchInventory} />
         </div>
       </div>
+      <Dialog open={exportOpen} onOpenChange={setExportOpen}>
+        <DialogTrigger asChild>
+          <Button variant="outline" className="float-right">
+            Export to Excel
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="bg-white sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Select Date Range</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">From</label>
+              <DatePicker
+                selected={exportFrom}
+                onChange={(date) => setExportFrom(date)}
+                className="border rounded px-2 py-1 w-full"
+                placeholderText="Select start date"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">To</label>
+              <DatePicker
+                selected={exportTo}
+                onChange={(date) => setExportTo(date)}
+                className="border rounded px-2 py-1 w-full"
+                placeholderText="Select end date"
+              />
+            </div>
+            <Button
+              onClick={() => exportToExcel(inventory, exportFrom, exportTo)}
+            >
+              Export to Excel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Filters */}
       <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
