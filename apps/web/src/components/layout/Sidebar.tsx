@@ -22,7 +22,6 @@ const navItems = [
   { name: "Order", href: "/dashboard/pos", icon: ShoppingCart },
   { name: "Sales", href: "/dashboard/sales", icon: DollarSign },
   { name: "Inventory", href: "/dashboard/inventory", icon: Boxes },
-  { name: "Expenses", href: "/dashboard/expenses", icon: Bell },
   { name: "Menu", href: "/dashboard/menu", icon: ClipboardList },
   { name: "Account", href: "/dashboard/account", icon: User },
 ];
@@ -63,8 +62,7 @@ export default function Sidebar() {
         <button onClick={() => setMobileOpen(true)}>
           <Menu className="text-gray-700" />
         </button>
-        <h2 className="text-xl font-bold text-indigo-600">Ken&rsquo;s Resto
-        </h2>
+        <h2 className="text-xl font-bold text-indigo-600">Ken&rsquo;s Resto</h2>
         <div className="w-6" />
       </div>
 
@@ -72,7 +70,7 @@ export default function Sidebar() {
       <aside className="hidden md:flex flex-col justify-between w-64 h-screen fixed bg-white shadow-md p-6 z-30">
         <div>
           <h2 className="text-2xl font-bold text-indigo-600 mb-10">
-          Ken&rsquo;s Resto
+            Ken&rsquo;s Resto
           </h2>
           <nav className="space-y-2">{renderNavLinks()}</nav>
         </div>
@@ -91,7 +89,7 @@ export default function Sidebar() {
             <div>
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold text-indigo-600">
-                Ken&rsquo;s Resto
+                  Ken&rsquo;s Resto
                 </h2>
                 <button onClick={() => setMobileOpen(false)}>
                   <X />
