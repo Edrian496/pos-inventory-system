@@ -78,7 +78,7 @@ export function AddInventoryModal({ onItemAdded }: AddInventoryModalProps) {
       }}
     >
       <DialogTrigger asChild>
-        <Button className="flex items-center gap-2">
+        <Button className="flex items-center gap-2" variant="indigo">
           <Plus size={16} />
           Add Item
         </Button>
@@ -133,7 +133,7 @@ export function AddInventoryModal({ onItemAdded }: AddInventoryModalProps) {
               required
             />
           </div>
-          <Button onClick={handleAddItem} disabled={loading}>
+          <Button variant="indigo" onClick={handleAddItem} disabled={loading}>
             {loading ? "Saving..." : "Save Item"}
           </Button>
         </div>

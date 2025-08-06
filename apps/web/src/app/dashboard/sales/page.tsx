@@ -220,8 +220,9 @@ export default function SalesPage() {
           </select>
         </div>
 
-        <div className="self-end md:self-auto">
-          <Button onClick={applyFilters}>Apply Filters</Button>
+        <div className="self-end md:self-auto mt-5">
+          <Button variant="indigo" 
+          onClick={applyFilters}>Apply Filters</Button>
         </div>
       </div>
 

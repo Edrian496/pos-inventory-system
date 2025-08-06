@@ -250,14 +250,14 @@ export default function POSPage() {
                         </div>
 
                         <Button
-                          variant="default"
+                          variant="indigo"
                           size="sm"
                           onClick={() => confirmRemove(item.id)}
                         >
                           Confirm
                         </Button>
                         <Button
-                          variant="ghost"
+                          variant="red"
                           size="sm"
                           onClick={() => setRemoveModeId(null)}
                         >
@@ -284,7 +284,7 @@ export default function POSPage() {
           </div>
 
           <Button
-            className="mt-6 w-full text-base py-5"
+            className="mt-6 w-full text-base py-5 bg-indigo-100 text-indigo-600 font-semibold"
             disabled={cart.length === 0}
             onClick={() => setShowPaymentModal(true)}
           >
