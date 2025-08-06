@@ -5,7 +5,6 @@ import { supabase } from "@/lib/supabase/client";
 import { usePathname } from "next/navigation";
 import {
   Boxes,
-  Bell,
   User,
   DollarSign,
   ClipboardList,

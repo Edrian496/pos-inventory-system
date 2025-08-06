@@ -1,5 +1,4 @@
 import ExcelJS from "exceljs";
-import { saveAs } from "file-saver";
 import { GroupedSale } from "@/lib/types/index";
 
 export const exportToExcel = async (
@@ -84,13 +83,13 @@ export const exportToExcel = async (
 
   // Set column widths
   sheet.columns = [
-    { width: 20 }, // Date
-    { width: 18 }, // Payment Method
-    { width: 22 }, // Menu Item
-    { width: 10 }, // Quantity
-    { width: 16 }, // Price per Unit
-    { width: 15 }, // Subtotal
-    { width: 18 }, // Total
+    { width: 20 },
+    { width: 18 },
+    { width: 22 },
+    { width: 10 },
+    { width: 16 },
+    { width: 15 },
+    { width: 18 },
   ];
 
   // Export the file
@@ -98,10 +97,10 @@ export const exportToExcel = async (
   const blob = new Blob([buffer], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   });
+  const { default: saveAs } = await import("file-saver");
   saveAs(blob, `Sales_Report_${fromStr}_to_${toStr}.xlsx`);
 };
 
-// Helper: Apply thin borders on all sides
 function borderAll(): Partial<ExcelJS.Borders> {
   return {
     top: { style: "thin" },
@@ -109,5 +108,4 @@ function borderAll(): Partial<ExcelJS.Borders> {
     left: { style: "thin" },
     right: { style: "thin" },
   };
-
 }

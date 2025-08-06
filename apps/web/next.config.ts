@@ -1,19 +1,22 @@
 import type { NextConfig } from "next";
 
+/** @type {import('next').NextConfig} */
 const nextConfig: NextConfig = {
-  // next.config.js
-webpack: (config, { isServer }) => {
-  if (!isServer) {
-    config.resolve.fallback = {
-      fs: false,
-      stream: false,
-      buffer: false,
-    };
-  }
-  return config;
-}
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        stream: false,
+        buffer: false,
+      };
+    }
+    return config;
+  },
 
-  /* config options here */
+  // Add other config options below if needed
+  // reactStrictMode: true,
+  // swcMinify: true,
 };
 
 export default nextConfig;

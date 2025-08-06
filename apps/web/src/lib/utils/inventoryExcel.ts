@@ -1,5 +1,3 @@
-import ExcelJS from "exceljs";
-import { saveAs } from "file-saver";
 import { InventoryItem } from "@/lib/types/index";
 
 export const exportToExcel = async (
@@ -7,11 +5,13 @@ export const exportToExcel = async (
   exportFrom: Date | null,
   exportTo: Date | null
 ) => {
+  // ✅ Validate date range
   if (!exportFrom || !exportTo) {
     alert("Please select both From and To dates.");
     return;
   }
 
+  // ✅ Filter inventory by created_at date
   const filtered = inventory.filter((inv) => {
     const date = new Date(inv.created_at);
     return date >= exportFrom && date <= exportTo;
@@ -22,25 +22,30 @@ export const exportToExcel = async (
     return;
   }
 
+  // ✅ Dynamically import ExcelJS and file-saver
+  const ExcelJS = (await import("exceljs")).default;
+  const { default: saveAs } = await import("file-saver");
+
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet("Inventory");
 
   const fromStr = exportFrom.toLocaleDateString();
   const toStr = exportTo.toLocaleDateString();
 
-  // Title
+  // ✅ Title
   sheet.mergeCells("A1", "F1");
   sheet.getCell("A1").value = "BAHAY BIRIA INVENTORY";
   sheet.getCell("A1").alignment = { horizontal: "center", vertical: "middle" };
   sheet.getCell("A1").font = { bold: true, size: 14 };
 
-  // Date Range
+  // ✅ Date Range
   sheet.mergeCells("A2", "F2");
   sheet.getCell("A2").value = `AS OF ${fromStr} - ${toStr}`;
   sheet.getCell("A2").alignment = { horizontal: "center", vertical: "middle" };
   sheet.getCell("A2").font = { bold: true, size: 12 };
 
-  // Headers
+  // ✅ Headers
+  sheet.addRow([]);
   const headers = [
     "Name",
     "Quantity",
@@ -49,7 +54,6 @@ export const exportToExcel = async (
     "Bought on",
     "Total Cost",
   ];
-  sheet.addRow([]);
   const headerRow = sheet.addRow(headers);
   headerRow.eachCell((cell) => {
     cell.font = { bold: true };
@@ -57,7 +61,7 @@ export const exportToExcel = async (
     cell.border = borderAll();
   });
 
-  // Data rows
+  // ✅ Data rows
   filtered.forEach((inv) => {
     const row = sheet.addRow([
       inv.name,
@@ -76,7 +80,7 @@ export const exportToExcel = async (
     });
   });
 
-  // Total row
+  // ✅ Total row
   const totalCost = filtered.reduce(
     (sum, inv) => sum + inv.quantity * inv.cost_per_unit,
     0
@@ -88,7 +92,7 @@ export const exportToExcel = async (
     cell.border = borderAll();
   });
 
-  // Column widths
+  // ✅ Column widths
   sheet.columns = [
     { width: 25 },
     { width: 12 },
@@ -98,7 +102,7 @@ export const exportToExcel = async (
     { width: 15 },
   ];
 
-  // Save to file
+  // ✅ Save to file
   const buffer = await workbook.xlsx.writeBuffer();
   const blob = new Blob([buffer], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -106,7 +110,8 @@ export const exportToExcel = async (
   saveAs(blob, `Inventory_Report_${fromStr}_to_${toStr}.xlsx`);
 };
 
-function borderAll(): Partial<ExcelJS.Borders> {
+// ✅ Helper: Border for all sides
+function borderAll(): Partial<import("exceljs").Borders> {
   return {
     top: { style: "thin" },
     bottom: { style: "thin" },

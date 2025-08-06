@@ -163,11 +163,13 @@ export default function POSPage() {
             >
               <div className="aspect-[3/4] bg-muted">
                 {item.image_url ? (
-                  <img
-                    src={item.image_url}
-                    alt={item.name}
-                    className="w-full h-full object-cover"
-                  />
+                  <picture>
+                    <img
+                      src={item.image_url}
+                      alt={item.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </picture>
                 ) : (
                   <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
                     No image
