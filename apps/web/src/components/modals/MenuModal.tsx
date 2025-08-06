@@ -15,30 +15,13 @@ import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase/client";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
 import { MenuItem } from "../../app/dashboard/menu/page";
 
 interface AddMenuItemModalProps {
   item?: MenuItem;
   onItemAdded: () => void;
   onClose?: () => void;
-}
-
-interface InventoryItem {
-  id: string;
-  name: string;
-  unit: string;
-}
-
-interface IngredientInput {
-  inventory_item_id: string;
-  quantity: string;
 }
 
 export function AddMenuItemModal({
@@ -50,8 +33,6 @@ export function AddMenuItemModal({
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [description, setDescription] = useState("");
-  const [ingredients, setIngredients] = useState<IngredientInput[]>([]);
-  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
 
@@ -60,52 +41,13 @@ export function AddMenuItemModal({
       setName(item.name);
       setPrice(item.price.toString());
       setDescription(item.description || "");
-      setIngredients(
-        item.ingredients.map((ing) => ({
-          inventory_item_id:
-            inventoryItems.find((inv) => inv.name === ing.name)?.id || "",
-          quantity: ing.quantity.toString(),
-        }))
-      );
       setOpen(true);
     }
-  }, [item, inventoryItems]);
-
-  useEffect(() => {
-    const fetchInventory = async () => {
-      const { data, error } = await supabase
-        .from("inventory_items")
-        .select("id, name, unit");
-      if (error) {
-        toast.error("Failed to fetch inventory.");
-      } else {
-        setInventoryItems(data || []);
-      }
-    };
-    fetchInventory();
-  }, []);
-
-  const addIngredientField = () => {
-    setIngredients((prev) => [
-      ...prev,
-      { inventory_item_id: "", quantity: "" },
-    ]);
-  };
-
-  const updateIngredient = (index: number, field: string, value: string) => {
-    setIngredients((prev) =>
-      prev.map((ing, i) => (i === index ? { ...ing, [field]: value } : ing))
-    );
-  };
+  }, [item]);
 
   const handleSave = async () => {
     if (!name || !price) {
       toast.warning("Name and price are required.");
-      return;
-    }
-
-    if (ingredients.some((i) => !i.inventory_item_id || !i.quantity)) {
-      toast.warning("All ingredient fields must be filled.");
       return;
     }
 
@@ -119,7 +61,7 @@ export function AddMenuItemModal({
       const filePath = `menu-images/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from("menu") // replace with your actual bucket name
+        .from("menu")
         .upload(filePath, imageFile);
 
       if (uploadError) {
@@ -152,30 +94,11 @@ export function AddMenuItemModal({
         return;
       }
 
-      await supabase
-        .from("menu_item_ingredients")
-        .delete()
-        .eq("menu_item_id", item.id);
-
-      const mappedIngredients = ingredients.map((ing) => ({
-        menu_item_id: item.id,
-        inventory_item_id: ing.inventory_item_id,
-        quantity: parseFloat(ing.quantity),
-      }));
-
-      const { error: insertError } = await supabase
-        .from("menu_item_ingredients")
-        .insert(mappedIngredients);
-
-      if (insertError) {
-        toast.error("Failed to update ingredients.");
-      } else {
-        toast.success("Menu item updated!");
-        handleClose();
-        onItemAdded();
-      }
+      toast.success("Menu item updated!");
+      handleClose();
+      onItemAdded();
     } else {
-      const { data: menuItem, error: insertError } = await supabase
+      const { data: newItem, error: insertError } = await supabase
         .from("menu_items")
         .insert([
           { name, price: parseFloat(price), description, image_url: imageUrl },
@@ -183,29 +106,15 @@ export function AddMenuItemModal({
         .select()
         .single();
 
-      if (insertError || !menuItem) {
+      if (insertError || !newItem) {
         toast.error("Failed to add menu item.");
         setLoading(false);
         return;
       }
 
-      const mappedIngredients = ingredients.map((ing) => ({
-        menu_item_id: menuItem.id,
-        inventory_item_id: ing.inventory_item_id,
-        quantity: parseFloat(ing.quantity),
-      }));
-
-      const { error: ingredientError } = await supabase
-        .from("menu_item_ingredients")
-        .insert(mappedIngredients);
-
-      if (ingredientError) {
-        toast.error("Failed to add ingredients.");
-      } else {
-        toast.success("Menu item added!");
-        handleClose();
-        onItemAdded();
-      }
+      toast.success("Menu item added!");
+      handleClose();
+      onItemAdded();
     }
 
     setLoading(false);
@@ -216,18 +125,12 @@ export function AddMenuItemModal({
     setName("");
     setPrice("");
     setDescription("");
-    setIngredients([]);
     setImageFile(null);
     onClose?.();
   };
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(val) => {
-        if (!val) handleClose();
-      }}
-    >
+    <Dialog open={open} onOpenChange={(val) => !val && handleClose()}>
       {!item && (
         <DialogTrigger asChild>
           <Button

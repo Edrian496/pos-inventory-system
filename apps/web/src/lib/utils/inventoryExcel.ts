@@ -1,141 +1,116 @@
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 import { InventoryItem } from "@/lib/types/index";
 
-export const exportToExcel = (
-    inventory: InventoryItem[],
-    exportFrom: Date | null,
-    exportTo: Date | null
-  ) => {
-    if (!exportFrom || !exportTo) {
-      alert("Please select both From and To dates.");
-      return;
-    }
-
-    const filtered = inventory.filter((inv) => {
-      const date = new Date(inv.created_at);
-      return date >= exportFrom && date <= exportTo;
-    });
-
-    if (filtered.length === 0) {
-      alert("No sales found in selected range.");
-      return;
-    }
-
-    const fromStr = exportFrom.toISOString().split("T")[0];
-    const toStr = exportTo.toISOString().split("T")[0];
-
-    const title = [`BAHAY BIRIA INVENTORY SALE`];
-    const dateRange = [`AS OF ${fromStr} - ${toStr}`];
-    const headers = [
-      "Sale ID",
-      "Name",
-      "Unit",
-      "Quantity",
-      "Cost per Unit",
-      "Created At",
-      "Total Cost",
-    ];
-
-    const dataRows = filtered.map((inv) => [
-      inv.id,
-      inv.name,
-      inv.unit,
-      inv.quantity,
-      inv.cost_per_unit,
-      new Date(inv.created_at).toLocaleString(),
-      inv.quantity * inv.cost_per_unit,
-    ]);
-
-    // Calculate total cost
-    const totalCost = dataRows.reduce(
-      (sum, row) => sum + Number(row[6] || 0),
-      0
-    );
-
-    const worksheetData = [
-      title,
-      dateRange,
-      [],
-      headers,
-      ...dataRows,
-      [],
-      ["", "", "", "", "", "TOTAL:", totalCost],
-    ];
-
-    const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
-
-    // Merge title and date rows across all columns
-    worksheet["!merges"] = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } }, // Merge title
-      { s: { r: 1, c: 0 }, e: { r: 1, c: 6 } }, // Merge date range
-    ];
-
-    // Column widths
-    worksheet["!cols"] = [
-      { wch: 15 },
-      { wch: 25 },
-      { wch: 10 },
-      { wch: 12 },
-      { wch: 15 },
-      { wch: 25 },
-      { wch: 15 },
-    ];
-
-    // Apply styling: headers, data, total row
-    const range = XLSX.utils.decode_range(worksheet["!ref"]!);
-    for (let R = range.s.r; R <= range.e.r; ++R) {
-      for (let C = range.s.c; C <= range.e.c; ++C) {
-        const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
-        const cell = worksheet[cellRef];
-        if (!cell) continue;
-
-        // Title rows (first and second)
-        if (R === 0 || R === 1) {
-          cell.s = {
-            font: { bold: true, sz: 14 },
-            alignment: { horizontal: "center", vertical: "center" },
-          };
-        }
-
-        // Column headers
-        if (R === 3) {
-          cell.s = {
-            font: { bold: true },
-            alignment: { horizontal: "center" },
-            border: borderAll(),
-          };
-        }
-
-        // Data & total rows
-        if (R > 3) {
-          cell.s = {
-            alignment: { horizontal: "center" },
-            border: borderAll(),
-            ...(R === range.e.r &&
-              C === 6 && {
-                font: { bold: true },
-              }),
-          };
-        }
-      }
-    }
-
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Sales Report");
-
-    XLSX.writeFile(workbook, `Sales_Report_${fromStr}_to_${toStr}.xlsx`, {
-      bookType: "xlsx",
-      cellStyles: true,
-    });
-  };
-
-  // Helper for border object
-  function borderAll() {
-    return {
-      top: { style: "thin", color: { rgb: "000000" } },
-      bottom: { style: "thin", color: { rgb: "000000" } },
-      left: { style: "thin", color: { rgb: "000000" } },
-      right: { style: "thin", color: { rgb: "000000" } },
-    };
+export const exportToExcel = async (
+  inventory: InventoryItem[],
+  exportFrom: Date | null,
+  exportTo: Date | null
+) => {
+  if (!exportFrom || !exportTo) {
+    alert("Please select both From and To dates.");
+    return;
   }
 
+  const filtered = inventory.filter((inv) => {
+    const date = new Date(inv.created_at);
+    return date >= exportFrom && date <= exportTo;
+  });
+
+  if (filtered.length === 0) {
+    alert("No inventory found in selected range.");
+    return;
+  }
+
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet("Inventory");
+
+  const fromStr = exportFrom.toLocaleDateString();
+  const toStr = exportTo.toLocaleDateString();
+
+  // Title
+  sheet.mergeCells("A1", "F1");
+  sheet.getCell("A1").value = "BAHAY BIRIA INVENTORY";
+  sheet.getCell("A1").alignment = { horizontal: "center", vertical: "middle" };
+  sheet.getCell("A1").font = { bold: true, size: 14 };
+
+  // Date Range
+  sheet.mergeCells("A2", "F2");
+  sheet.getCell("A2").value = `AS OF ${fromStr} - ${toStr}`;
+  sheet.getCell("A2").alignment = { horizontal: "center", vertical: "middle" };
+  sheet.getCell("A2").font = { bold: true, size: 12 };
+
+  // Headers
+  const headers = [
+    "Name",
+    "Quantity",
+    "Unit",
+    "Cost per Unit",
+    "Bought on",
+    "Total Cost",
+  ];
+  sheet.addRow([]);
+  const headerRow = sheet.addRow(headers);
+  headerRow.eachCell((cell) => {
+    cell.font = { bold: true };
+    cell.alignment = { horizontal: "center", vertical: "middle" };
+    cell.border = borderAll();
+  });
+
+  // Data rows
+  filtered.forEach((inv) => {
+    const row = sheet.addRow([
+      inv.name,
+      inv.quantity,
+      inv.unit,
+      inv.cost_per_unit,
+      new Date(inv.created_at).toLocaleDateString(),
+      inv.quantity * inv.cost_per_unit,
+    ]);
+    row.eachCell((cell, colNumber) => {
+      cell.alignment = {
+        horizontal: colNumber === 1 ? "left" : "center",
+        vertical: "middle",
+      };
+      cell.border = borderAll();
+    });
+  });
+
+  // Total row
+  const totalCost = filtered.reduce(
+    (sum, inv) => sum + inv.quantity * inv.cost_per_unit,
+    0
+  );
+  const totalRow = sheet.addRow(["", "", "", "", "TOTAL:", totalCost]);
+  totalRow.eachCell((cell) => {
+    cell.font = { bold: true };
+    cell.alignment = { horizontal: "center", vertical: "middle" };
+    cell.border = borderAll();
+  });
+
+  // Column widths
+  sheet.columns = [
+    { width: 25 },
+    { width: 12 },
+    { width: 10 },
+    { width: 15 },
+    { width: 20 },
+    { width: 15 },
+  ];
+
+  // Save to file
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  saveAs(blob, `Inventory_Report_${fromStr}_to_${toStr}.xlsx`);
+};
+
+function borderAll(): Partial<ExcelJS.Borders> {
+  return {
+    top: { style: "thin" },
+    bottom: { style: "thin" },
+    left: { style: "thin" },
+    right: { style: "thin" },
+  };
+}
