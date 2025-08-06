@@ -150,8 +150,8 @@ export default function InventoryPage() {
             className="border rounded px-2 py-1"
           />
         </div>
-        <div className="self-end md:self-auto">
-          <Button onClick={applyFilters}>Apply Filters</Button>
+        <div className="self-end md:self-auto mt-6">
+          <Button variant="indigo" onClick={applyFilters}>Apply Filters</Button>
         </div>
       </div>
 

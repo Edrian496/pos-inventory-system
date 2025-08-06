@@ -135,6 +135,7 @@ export function AddMenuItemModal({
         <DialogTrigger asChild>
           <Button
             className="flex items-center gap-2"
+            variant="indigo"
             onClick={() => setOpen(true)}
           >
             <Plus size={16} />
@@ -179,7 +180,7 @@ export function AddMenuItemModal({
             />
           </div>
 
-          <Button onClick={handleSave} disabled={loading}>
+          <Button variant="indigo" onClick={handleSave} disabled={loading}>
             {loading
               ? "Saving..."
               : item
